@@ -8,12 +8,14 @@ import type { Bar, Step } from "@/lib/algorithms";
 gsap.registerPlugin(useGSAP);
 
 export const COLORS = {
-  default: "#71717a",
-  compare: "#facc15",
-  swap: "#f43f5e",
-  pivot: "#f4f4f5",
-  sorted: "#22c55e",
+  default: "#66717c",
+  compare: "#ffb000",
+  swap: "#ff5a4f",
+  pivot: "#e6edf3",
+  sorted: "#3ddc84",
 };
+
+const SCALE = [0, 25, 50, 75, 100];
 
 type Props = {
   step: Step;
@@ -40,6 +42,8 @@ export function SortingBars({ step, initial, duration, animateIntro }: Props) {
   // Batang dicari lewat id, bukan indeks, agar GSAP menggeser batang yang sama saat ditukar.
   useGSAP(
     () => {
+      const root = container.current;
+      if (!root) return;
       const sortedSet = new Set(step.sorted);
       const compareSet = new Set(step.compare);
       const swapSet = new Set(step.swap);
@@ -47,7 +51,7 @@ export function SortingBars({ step, initial, duration, animateIntro }: Props) {
       const colorDuration = Math.min(duration, 0.25);
 
       step.bars.forEach((bar, index) => {
-        const wrap = container.current?.querySelector<HTMLElement>(`[data-id="${bar.id}"]`);
+        const wrap = root.querySelector<HTMLElement>(`[data-id="${bar.id}"]`);
         if (!wrap) return;
         const fill = wrap.querySelector<HTMLElement>(".bar-fill");
         const label = wrap.querySelector<HTMLElement>(".bar-label");
@@ -57,60 +61,119 @@ export function SortingBars({ step, initial, duration, animateIntro }: Props) {
         if (compareSet.has(index)) color = COLORS.compare;
         if (step.pivot === index) color = COLORS.pivot;
         if (swapSet.has(index)) color = COLORS.swap;
-
-        const active = compareSet.has(index) || swapSet.has(index);
+        const probed = compareSet.has(index);
         const inRange = (index >= lo && index <= hi) || sortedSet.has(index);
 
         gsap.to(wrap, {
           xPercent: index * 100,
-          y: swapSet.has(index) ? -10 : 0,
+          y: swapSet.has(index) ? -8 : 0,
           duration,
           ease: "power2.inOut",
           overwrite: "auto",
         });
         if (fill) {
-          // Glow hanya untuk pasangan aktif agar mata langsung menemukannya pada kecepatan tinggi.
+          // Pendar hanya pada pasangan yang dibandingkan: itu motif probe dari DESIGN.md.
           gsap.to(fill, {
             backgroundColor: color,
             opacity: inRange ? 1 : 0.3,
-            boxShadow: active ? `0 0 14px ${color}` : "0 0 0px transparent",
+            boxShadow: probed ? `0 0 12px ${COLORS.compare}80` : "0 0 0px transparent",
             duration: colorDuration,
             overwrite: "auto",
           });
         }
         if (label) {
-          gsap.to(label, { color: active ? color : "#a1a1aa", duration: colorDuration, overwrite: "auto" });
+          gsap.to(label, {
+            color: probed || swapSet.has(index) ? color : "#9aa7b4",
+            duration: colorDuration,
+            overwrite: "auto",
+          });
         }
       });
+
+      root.querySelectorAll<HTMLElement>(".probe").forEach((probe, k) => {
+        const target = step.compare[k];
+        gsap.to(probe, {
+          xPercent: (target ?? 0) * 100,
+          opacity: target === undefined ? 0 : 1,
+          duration: target === undefined ? colorDuration : duration,
+          ease: "power2.inOut",
+          overwrite: "auto",
+        });
+      });
+
+      const bracket = root.querySelector<HTMLElement>(".range-bracket");
+      if (bracket) {
+        gsap.to(bracket, {
+          left: `${(lo / n) * 100}%`,
+          width: `${((hi - lo + 1) / n) * 100}%`,
+          opacity: step.range ? 1 : 0,
+          duration,
+          ease: "power2.inOut",
+          overwrite: "auto",
+        });
+      }
     },
     { scope: container, dependencies: [step, duration] },
   );
 
   return (
-    <div
-      ref={container}
-      role="img"
-      aria-label={`Diagram batang ${n} data: ${step.bars.map((b) => b.value).join(", ")}`}
-      className="relative h-64 w-full sm:h-96"
-    >
-      {initial.map((bar) => (
+    <div ref={container} className="flex gap-2">
+      <div aria-hidden="true" className="relative mt-6 h-56 w-7 shrink-0 font-mono text-[11px] text-ink-2 sm:h-80 lg:h-96">
+        {SCALE.map((v) => (
+          <span key={v} className="absolute right-0 translate-y-1/2 tabular-nums" style={{ bottom: `${v}%` }}>
+            {v}
+          </span>
+        ))}
+      </div>
+
+      <div className="min-w-0 flex-1">
         <div
-          key={`${bar.id}-${bar.value}`}
-          data-id={bar.id}
-          className="absolute bottom-0 left-0 flex h-full flex-col justify-end px-px sm:px-[3px]"
-          style={{ width: `${100 / n}%` }}
+          role="img"
+          aria-label={`Diagram batang ${n} data: ${step.bars.map((b) => b.value).join(", ")}`}
+          className="relative mt-6 h-56 sm:h-80 lg:h-96"
         >
-          {showLabels && (
-            <span className="bar-label mb-1 text-center text-[10px] font-medium tabular-nums text-zinc-400 sm:text-xs">
-              {bar.value}
-            </span>
-          )}
-          <div
-            className="bar-fill w-full origin-bottom rounded-t-sm"
-            style={{ height: `${bar.value * (showLabels ? 0.9 : 1)}%`, backgroundColor: COLORS.default }}
-          />
+          {SCALE.map((v) => (
+            <div
+              key={v}
+              aria-hidden="true"
+              className={v === 0 ? "absolute inset-x-0 border-t border-ink-3" : "absolute inset-x-0 border-t border-line/70"}
+              style={{ bottom: `${v}%` }}
+            />
+          ))}
+          {initial.map((bar) => (
+            <div
+              key={`${bar.id}-${bar.value}`}
+              data-id={bar.id}
+              className="absolute bottom-0 left-0 h-full"
+              style={{ width: `${100 / n}%` }}
+            >
+              <div
+                className="bar-fill absolute inset-x-px bottom-0 origin-bottom rounded-t-[2px] sm:inset-x-[3px]"
+                style={{ height: `${bar.value}%`, backgroundColor: COLORS.default }}
+              />
+              {showLabels && (
+                <span
+                  className="bar-label absolute inset-x-0 mb-1 text-center font-mono text-[10px] tabular-nums text-ink-2 sm:text-xs"
+                  style={{ bottom: `${bar.value}%` }}
+                >
+                  {bar.value}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
-      ))}
+
+        <div aria-hidden="true" className="relative mt-2 h-4">
+          {[0, 1].map((k) => (
+            <div key={k} className="probe absolute left-0 top-0 flex justify-center opacity-0" style={{ width: `${100 / n}%` }}>
+              <svg viewBox="0 0 10 8" className="h-2 w-2.5 fill-probe">
+                <path d="M5 0 10 8H0z" />
+              </svg>
+            </div>
+          ))}
+          <div className="range-bracket absolute bottom-0 h-1.5 border-x border-b border-ink-2 opacity-0" />
+        </div>
+      </div>
     </div>
   );
 }
