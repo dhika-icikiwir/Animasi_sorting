@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* Token dari DESIGN.md (arah: instrumen ukur lab). */
+@theme {
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --color-bg: #0b0e11;
+  --color-panel: #12171c;
+  --color-panel-2: #182028;
+  --color-line: #26303a;
+  --color-ink: #e6edf3;
+  --color-ink-2: #9aa7b4;
+  --color-ink-3: #6b7885;
+  --color-bar: #66717c;
+  --color-probe: #ffb000;
+  --color-swap: #ff5a4f;
+  --color-done: #3ddc84;
+}
+
 @theme inline {
   --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
   --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
@@ -27,14 +45,14 @@
   }
 }
 
-/* Tema gelap tetap (R-21): kelima warna status batang butuh latar gelap agar kontrasnya minimal 3:1. */
+/* Tema gelap tetap (R-21): layar alat ukur, dan warna status butuh latar gelap agar kontrasnya minimal 3:1. */
 html {
   color-scheme: dark;
 }
 
 body {
-  background: #09090b;
-  color: #fafafa;
+  background: var(--color-bg);
+  color: var(--color-ink);
 }
 
 @layer base {
@@ -47,13 +65,45 @@ body {
     cursor: not-allowed;
   }
   :focus-visible {
-    outline: 2px solid #facc15;
+    outline: 2px solid var(--color-probe);
     outline-offset: 2px;
   }
 }
 
+/* Slider bergaya kenop geser alat ukur: rel tipis dan kenop persegi. */
 input[type="range"] {
-  accent-color: #e4e4e7;
+  appearance: none;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--color-line);
+}
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--color-line);
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 22px;
+  margin-top: -10px;
+  border-radius: 2px;
+  background: var(--color-ink);
+  border: 2px solid var(--color-bg);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--color-ink);
+  border: 2px solid var(--color-bg);
+}
+input[type="range"]:hover::-webkit-slider-thumb {
+  background: var(--color-probe);
+}
+input[type="range"]:hover::-moz-range-thumb {
+  background: var(--color-probe);
 }
 
 @media (prefers-reduced-motion: reduce) {
